@@ -308,8 +308,9 @@ body {
   font-size: 0.875rem;
 }
 
+/* --- 1. TU ESTILO ORIGINAL (Mantiene la posición y forma correcta) --- */
 .product-card button {
-  margin: 0 1rem 1rem;
+  margin: 0 1rem 1rem; /* Esto es clave para que no se vea pegado a los bordes */
   padding: 0.75rem;
   background: var(--primary-color);
   color: white;
@@ -318,7 +319,9 @@ body {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
-  transition: background 0.2s;
+  
+  /*Change in css*/
+  transition: all 0.3s ease; 
 }
 
 .product-card button:hover:not(.disabled) {
@@ -328,6 +331,12 @@ body {
 .product-card button.disabled {
   background: var(--text-light);
   cursor: not-allowed;
+}
+
+.product-card button.success {
+  background-color: #28a745 !important; 
+  transform: scale(1.05); 
+  pointer-events: none; 
 }
 
 .loading,

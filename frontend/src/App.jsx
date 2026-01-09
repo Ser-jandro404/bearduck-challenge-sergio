@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-
+import OrderSuccessModal from './OrderSuccess' //challenge #2
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
@@ -9,8 +9,18 @@ function App() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [showCart, setShowCart] = useState(false)
+  const [showCart, setShowCart] = useState(false) 
   const [showOrders, setShowOrders] = useState(false)
+  // Tracks products that were recently added to cart
+  // Used to trigger temporary success animation per product (Challenge 01)
+  const [addedItems, setAddedItems] = useState({}) 
+  //-------------------------
+
+  // Controls order success modal visibility and content
+  // Replaces browser alert() with custom modal (Challenge 02)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [createdOrderId, setCreatedOrderId] = useState(null)
+  // ------------------------------------
   const [sessionId] = useState(() => {
     const saved = localStorage.getItem('sessionId')
     return saved || `session-${Date.now()}`
@@ -70,6 +80,21 @@ function App() {
       }
       await fetchCart()
       await fetchProducts()
+
+      // Trigger temporary visual feedback for "Add to Cart"
+      // Marks product as recently added to:
+      // - Disable button
+      // - Show success color + check icon
+      // Automatically resets after animation duration (~600ms)
+      setAddedItems(prev => ({...prev, [productId]:true}))
+      setTimeout(() => {
+        setAddedItems(prev=>{
+          const next = {...prev}
+          delete next[productId]
+          return next
+        })
+      }, 600);
+      //---------------------------------------
     } catch (err) {
       alert(err.message)
     }
@@ -125,7 +150,10 @@ function App() {
         throw new Error(error.detail)
       }
       const order = await response.json()
-      alert(`Order created successfully! Order ID: ${order.id}`)
+      // Store created order ID and display success modal
+      // This replaces the default browser alert with a custom UI (Challenge 02)
+      setCreatedOrderId(order.id) 
+      setShowSuccessModal(true)   
 
       // Clear cart
       await fetch(`${API_URL}/api/cart/${sessionId}`, { method: 'DELETE' })
@@ -136,6 +164,19 @@ function App() {
       alert(err.message)
     }
   }
+
+  // Modal interaction handlers
+  // Allows user to either close modal or navigate to order history
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+  };
+
+  const handleViewOrder = () => {
+    setShowSuccessModal(false);
+    setShowOrders(true); 
+    fetchOrders(); 
+  };
+  // -----------------------------------------------------
 
   const getCartTotal = () => {
     return cart.reduce((total, item) => {
@@ -174,6 +215,15 @@ function App() {
           </button>
         </div>
       </header>
+
+      
+      <OrderSuccessModal 
+        isOpen={showSuccessModal} 
+        orderId={createdOrderId} 
+        onClose={handleCloseModal}
+        onViewOrder={handleViewOrder}
+      />
+      
 
       {showCart && (
         <div className="cart-panel">
@@ -257,24 +307,38 @@ function App() {
       )}
 
       <main className="products-grid">
-        {products.map(product => (
-          <div key={product.id} className="product-card">
-            <img src={product.image_url} alt={product.name} />
-            <h3>{product.name}</h3>
-            <p className="description">{product.description}</p>
-            <div className="product-footer">
-              <span className="price">${product.price}</span>
-              <span className="stock">Stock: {product.stock}</span>
-            </div>
-            <button
-              onClick={() => addToCart(product.id)}
-              disabled={product.stock === 0}
-              className={product.stock === 0 ? 'disabled' : ''}
-            >
-              {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </button>
-          </div>
-        ))}
+        {products.map(product => {
+            // Determines if this product is currently in "added" animation state
+            const isAdded = addedItems[product.id];
+            
+            return (
+              <div key={product.id} className="product-card">
+                <img src={product.image_url} alt={product.name} />
+                <h3>{product.name}</h3>
+                <p className="description">{product.description}</p>
+                <div className="product-footer">
+                  <span className="price">${product.price}</span>
+                  <span className="stock">Stock: {product.stock}</span>
+                </div>
+              
+                <button
+                  onClick={() => addToCart(product.id)}
+                  disabled={product.stock === 0 || isAdded}
+                  className={`add-cart-btn ${product.stock === 0 ? 'disabled' : ''} ${isAdded ? 'success' : ''}`}
+                >
+                  {isAdded ? (
+                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                         <path d="M20 6L9 17l-5-5" />
+                       </svg>
+                     </span>
+                  ) : (
+                    product.stock === 0 ? 'Out of Stock' : 'Add to Cart'
+                  )}
+                </button>
+              </div>
+            )
+        })}
       </main>
     </div>
   )
