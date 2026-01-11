@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import OrderSuccessModal from './OrderSuccess' //challenge #2
+import OrderSuccessModal from './OrderSuccess' //challenge #2a
+import OrderDetailsModal from './OrderDetailsModal';// challenge #2b
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
@@ -21,6 +22,11 @@ function App() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [createdOrderId, setCreatedOrderId] = useState(null)
   // ------------------------------------
+
+  const [selectedOrder, setSelectedOrder] = useState(null); 
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+
   const [sessionId] = useState(() => {
     const saved = localStorage.getItem('sessionId')
     return saved || `session-${Date.now()}`
@@ -153,6 +159,7 @@ function App() {
       // Store created order ID and display success modal
       // This replaces the default browser alert with a custom UI (Challenge 02)
       setCreatedOrderId(order.id) 
+      setSelectedOrder(order)
       setShowSuccessModal(true)   
 
       // Clear cart
@@ -173,7 +180,7 @@ function App() {
 
   const handleViewOrder = () => {
     setShowSuccessModal(false);
-    setShowOrders(true); 
+    setShowDetailsModal(true);
     fetchOrders(); 
   };
   // -----------------------------------------------------
@@ -188,6 +195,59 @@ function App() {
   const getCartItemCount = () => {
     return cart.reduce((total, item) => total + item.quantity, 0)
   }
+
+  const handleViewOrderDetails = (order) => {
+    setSelectedOrder(order);
+    setShowDetailsModal(true);
+  };
+
+  const cancelOrder = async (orderId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
+        method: 'PUT' 
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail);
+      }
+      
+      const updatedOrder = await response.json();
+      
+      alert('Pedido cancelado correctamente');
+      
+      
+      await fetchOrders(); 
+      setSelectedOrder(updatedOrder); 
+      
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail); // Aquí saltará si la transición es inválida
+      }
+
+      const updatedOrder = await response.json();
+      
+      // Actualizamos la UI
+      setSelectedOrder(updatedOrder); // Actualiza el modal abierto
+      fetchOrders(); // Actualiza la lista de fondo
+      
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    }
+  };
 
   if (loading) return <div className="loading">Loading...</div>
   if (error) return <div className="error">Error: {error}</div>
@@ -283,28 +343,50 @@ function App() {
                 <div key={order.id} className="order-card">
                   <div className="order-header">
                     <h3>Order #{order.id.substring(0, 8)}</h3>
-                    <span className="order-status">{order.status}</span>
+                    
+                    <span className={`order-status ${order.status}`}>
+                      {order.status}
+                    </span>
                   </div>
                   <p className="order-date">
                     {new Date(order.created_at).toLocaleString()}
                   </p>
-                  <div className="order-items">
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="order-item">
-                        <span>{item.product_name} x {item.quantity}</span>
-                        <span>${(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
                   <div className="order-total">
                     <strong>Total: ${order.total.toFixed(2)}</strong>
                   </div>
+                  
+                  
+                  <button 
+                    style={{
+                        marginTop: '1rem',
+                        width: '100%',
+                        padding: '0.5rem',
+                        backgroundColor: '#2563eb',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => handleViewOrderDetails(order)}
+                  >
+                    Ver Detalles
+                  </button>
+
                 </div>
               ))}
             </div>
           )}
         </div>
       )}
+
+      
+      <OrderDetailsModal 
+        isOpen={showDetailsModal}
+        order={selectedOrder}
+        onClose={() => setShowDetailsModal(false)}
+        onCancelOrder={cancelOrder}
+        onUpdateStatus={handleUpdateStatus}
+      />
 
       <main className="products-grid">
         {products.map(product => {

@@ -4,6 +4,7 @@ Order API routes
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
+from controllers.orders import update_order_status_controller
 
 from database import get_db
 import schemas
@@ -32,3 +33,21 @@ def get_orders(db: Session = Depends(get_db)):
 def get_order(order_id: str, db: Session = Depends(get_db)):
     """Get a single order by ID"""
     return order_controller.get_order_by_id(order_id, db)
+
+#Challenge 2b
+@router.put("/{order_id}/cancel", response_model=schemas.OrderResponse)
+def cancel_order_endpoint(order_id: str, db: Session = Depends(get_db)):
+    """Cancel a pending order"""
+    return order_controller.cancel_order(order_id, db)
+
+#Challenge 5
+@router.patch("/{order_id}/status", response_model=schemas.OrderResponse)
+async def update_status(
+    order_id: str, 
+    status_update: schemas.OrderStatusUpdate, 
+    db: Session = Depends(get_db)
+):
+    """
+    Update the status of an order following strict transition rules.
+    """
+    return update_order_status_controller(db, order_id, status_update.status)

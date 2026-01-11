@@ -6,6 +6,8 @@ from fastapi import HTTPException
 import models
 import schemas
 import uuid
+from models import Order 
+from schemas import OrderStatus
 
 
 def create_order(order_request: schemas.CreateOrderRequest, db: Session):
@@ -73,4 +75,69 @@ def get_order_by_id(order_id: str, db: Session):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+def cancel_order(order_id: str, db: Session):
+    """Cancel an order and restore stock"""
+    
+    # 1. Search for the order
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    
+    # 2. Check status (Cancellation is only possible if it is pending)
+    if order.status != "pending":
+        raise HTTPException(
+            status_code=400, 
+            detail="Only pending orders can be cancelled"
+        )
+    
+    # 3. Restock the products
+    for item in order.items:
+        product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+        if product:
+            product.stock += item.quantity
+            
+    # 4. Update status
+    order.status = "cancelled"
+    db.commit()
+    db.refresh(order)
+    
+    return order
+
+VALID_TRANSITIONS = {
+    "pending": ["processing", "cancelled"],
+    "processing": ["successful", "failed", "cancelled"],
+    "successful": [],   
+    "cancelled": [],    
+    "failed": []        
+}
+
+def update_order_status_controller(db: Session, order_id: str, new_status: OrderStatus):
+    
+    # 1. Search for the order
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    current_status = order.status
+
+    # 2. Validate transition
+    allowed_statuses = VALID_TRANSITIONS.get(current_status, [])
+    
+    
+    if new_status.value not in allowed_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid transition from '{current_status}' to '{new_status.value}'. Allowed: {allowed_statuses}"
+        )
+
+    
+    # 3. Apply change
+    order.status = new_status.value
+    db.commit()
+    db.refresh(order)
+    
     return order

@@ -1,0 +1,219 @@
+/* OrderDetailsModal.css */
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.details-modal-content {
+  background: white;
+  width: 95%;
+  max-width: 700px; 
+  max-height: 90vh; 
+  overflow-y: auto; 
+  border-radius: 12px;
+  padding: 2rem;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Header */
+.modal-header-nav {
+  margin-bottom: 1.5rem;
+}
+
+.back-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.header-title-row h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: #111827;
+}
+
+.order-id-sub {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+}
+
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-pending { background-color: #fef3c7; color: #92400e; }
+.status-processing { background-color: #dbeafe; color: #1e40af; }
+.status-successful { background-color: #d1fae5; color: #065f46; } 
+.status-cancelled { background-color: #f3f4f6; color: #4b5563; }
+.status-failed { background-color: #fee2e2; color: #991b1b; }
+
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.info-card {
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.info-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.info-value {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+
+.items-section-title {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.items-container {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.order-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.order-item-row:last-child {
+  border-bottom: none;
+}
+
+.item-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.item-image-placeholder {
+  width: 50px;
+  height: 50px;
+  background-color: #e5e7eb;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.item-details h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.item-details p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.item-price {
+  font-weight: 600;
+  color: #111827;
+}
+
+
+.totals-section {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.total-row.final {
+  margin-top: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Botones de Footer */
+.modal-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.btn-outline {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-outline:hover { background-color: #f9fafb; }
+
+.btn-action {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-action:hover { background-color: #1d4ed8; }
+
+.btn-danger {
+  background-color: #dc2626; 
+  color: white;
+}
+.btn-danger:hover { background-color: #b91c1c; }

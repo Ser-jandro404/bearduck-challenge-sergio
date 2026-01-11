@@ -214,13 +214,41 @@ body {
 }
 
 .order-status {
-  padding: 0.25rem 0.75rem;
-  background: var(--secondary-color);
-  color: white;
-  border-radius: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
   font-size: 0.875rem;
+  font-weight: 600;
   text-transform: capitalize;
+  display: inline-block;
 }
+
+/* STATUS COLORS */
+
+.order-status.pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.order-status.processing {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.order-status.successful {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.order-status.cancelled {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.order-status.failed {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
 
 .order-date {
   color: var(--text-light);

@@ -4,7 +4,15 @@ Pydantic schemas for request/response validation
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from enum import Enum
 
+#NEW 
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCESSFUL = "successful"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
 
 # Product Schemas
 class ProductBase(BaseModel):
@@ -67,3 +75,7 @@ class OrderResponse(BaseModel):
 
 class CreateOrderRequest(BaseModel):
     cart_items: List[CartItem]
+
+#NEW
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus
