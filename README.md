@@ -1,3 +1,4 @@
+
 ---
 
 # 🛒 E-commerce Full Stack Challenge – Submission
@@ -6,89 +7,231 @@
 
 This repository contains my solution to selected challenges from the **E-commerce Full Stack Challenge**, built using **React**, **FastAPI**, and **PostgreSQL**.
 
-The focus of this submission is improving **user experience and visual feedback** for critical e-commerce actions, following clean code principles, reusable component design, and production-ready practices.
+The focus of this submission is improving **user experience**, **order management**, and **backend workflow integrity**, following clean architecture principles and production-ready practices.
 
 ---
 
 ## ✅ Completed Challenges
 
-### ✔ Challenge 01 – Add to Cart Animation (Frontend)
+---
+
+## ✔ Challenge 01 – Add to Cart Animation
 
 **Type:** Frontend (React)
 **Status:** Completed
 
-**Description:**
-Implemented a smooth and responsive visual feedback animation when a product is added to the cart, improving clarity and user confidence during interactions.
+### 📌 Description
 
-**Features implemented:**
+Implemented smooth visual feedback when a product is added to the cart to improve user confidence and interaction clarity.
 
-* Button scale animation on click (0.95x)
-* Color transition from primary blue to success green
+### ✨ Features
+
+* Button scale animation on click
+* Color transition from primary to success
 * Animated checkmark icon
 * Automatic reset after ~600ms
-* Supports rapid multiple clicks without breaking state
+* Supports rapid multiple clicks safely
 
-**Implementation details:**
+### 🧠 Implementation
 
-* Animation state handled via React state (`addedItems`)
-* Per-product animation tracking to avoid global UI conflicts
-* Button temporarily disabled during animation
-* No external animation libraries used
+* Per-product animation state
+* No external animation libraries
+* Button disabled during animation
+* Clean and reusable UI logic
 
 ---
 
-### ✔ Challenge 02 – Order Confirmation Modal (Frontend)
+## ✔ Challenge 02 – Order Confirmation Modal
 
 **Type:** Frontend (React)
 **Status:** Completed
 
-**Description:**
-Replaced the default browser `alert()` after order creation with a fully custom modal component that provides a better user experience.
+### 📌 Description
 
-**Features implemented:**
+Replaced the default browser `alert()` with a fully custom order confirmation modal.
 
-* Custom modal with fade-in animation
-* Semi-transparent overlay
-* Displays the created order ID
+### ✨ Features
+
+* Fade-in modal with overlay
+* Displays created order ID
 * “View Order” and “Continue Shopping” actions
-* Close modal via overlay click or Escape key
-* Fully responsive design
+* Close via overlay click or Escape key
+* Fully responsive
 
-**Implementation details:**
+### 🧠 Implementation
 
-* Modal extracted into a reusable component (`OrderSuccessModal`)
-* Modal visibility and content controlled via React state
-* Proper keyboard event handling with cleanup
+* Reusable `OrderSuccessModal` component
+* Controlled via React state
+* Proper event cleanup
 * No browser alerts used
 
 ---
 
-## 🏗️ Architecture & Design Decisions
+## ✔ Challenge 02b – Order Details & Order Cancellation
+
+**Type:** Full Stack
+**Status:** Completed
+
+### 📌 Description
+
+Extended the order system to allow users to **view detailed order information** and **cancel pending orders**, ensuring data consistency and stock restoration.
+
+---
+
+### 🎨 Frontend (Challenge 02b)
+
+* Implemented `OrderDetailsModal`
+* Displays:
+
+  * Order metadata (date, total, items)
+  * Item list with quantities and prices
+  * Visual status badge
+* Allows cancellation **only for pending orders**
+* Confirmation dialog before cancellation
+* Modal closes via overlay click
+
+---
+
+### 🔧 Backend (Challenge 02b)
+
+#### ✅ New Controller: `cancel_order`
+
+**Behavior:**
+
+* Validates order existence
+* Allows cancellation only if status is `pending`
+* Restores product stock
+* Updates status to `cancelled`
+
+```http
+PUT /orders/{order_id}/cancel
+```
+
+**Errors handled:**
+
+* `404` → Order not found
+* `400` → Order cannot be cancelled
+
+---
+
+## ✔ Challenge 05 – Order Workflow & Status Management
+
+**Type:** Backend + Admin Workflow
+**Status:** Completed
+
+### 📌 Description
+
+Implemented a **strict order workflow system** enforcing valid status transitions using backend validation and enums.
+
+---
+
+### 🔧 Backend Changes (Challenge 05)
+
+#### ✅ Schema Updates (Pydantic)
+
+Order schemas were extended to support controlled status transitions.
+
+##### 🔹 New Enum: `OrderStatus`
+
+```python
+pending → processing → successful
+                    → failed
+                    → cancelled
+```
+
+Supported statuses:
+
+* `pending`
+* `processing`
+* `successful`
+* `cancelled`
+* `failed`
+
+This ensures:
+
+* Strong typing
+* Invalid statuses are rejected
+* Safer API contracts
+
+---
+
+#### 🔹 New Schema: `OrderStatusUpdate`
+
+Used to validate PATCH requests:
+
+```json
+{
+  "status": "processing"
+}
+```
+
+---
+
+### ✅ New Controller: `update_order_status_controller`
+
+Implements a finite-state workflow using strict transition rules:
+
+```python
+VALID_TRANSITIONS = {
+  "pending": ["processing", "cancelled"],
+  "processing": ["successful", "failed", "cancelled"],
+  "successful": [],
+  "cancelled": [],
+  "failed": []
+}
+```
+
+**Responsibilities:**
+
+* Validate order existence
+* Prevent invalid transitions
+* Apply allowed transitions only
+* Return meaningful error messages
+
+---
+
+### ✅ New Route
+
+```http
+PATCH /orders/{order_id}/status
+```
+
+**Behavior:**
+
+* Validates request body via schema
+* Enforces workflow rules
+* Returns updated order
+* Rejects invalid transitions (`400`)
+
+---
+
+## 🧠 Architecture & Design Decisions
+
+### Backend
+
+* Business rules enforced server-side
+* Enums used to avoid invalid states
+* Controllers isolated from routes
+* Stock integrity preserved on cancellation
 
 ### Frontend
 
-* React hooks for state management and side effects
-* Reusable UI components for modals and buttons
-* Clear separation between UI logic and API communication
-* Localized animation state to minimize unnecessary re-renders
-
-### UX Considerations
-
-* Immediate visual feedback on critical actions
-* Non-blocking confirmation after order creation
-* Clear navigation paths for next user actions
+* Reusable modal components
+* Clear UX states per order status
+* Frontend cannot bypass backend rules
+* Visual feedback aligned with order lifecycle
 
 ---
 
 ## 🧪 Testing
 
-* Manual end-to-end testing using Docker
+* Manual end-to-end testing via Docker
 * Verified:
 
-  * Multiple rapid add-to-cart interactions
-  * Order creation flow and modal behavior
-  * Modal close via all supported methods
-  * Responsive layout on different screen sizes
+  * Order creation flow
+  * Order cancellation and stock restoration
+  * Valid and invalid status transitions
+  * UI behavior across all order states
 
 ---
 
@@ -100,29 +243,30 @@ Replaced the default browser `alert()` after order creation with a fully custom 
 docker-compose up --build
 ```
 
-**Available services:**
+**Services:**
 
 * Frontend: [http://localhost:3000](http://localhost:3000)
 * Backend API: [http://localhost:8000](http://localhost:8000)
-* API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
+* API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
 ## 📌 Assumptions
 
-* Authentication is not required for this submission
-* Order success modal is shown immediately after a successful API response
-* UI behavior follows provided mockups, prioritizing functionality over custom styling
+* Authentication not required for this submission
+* Admin workflow actions are exposed for evaluation purposes
+* Order status is source of truth for UI behavior
 
 ---
 
 ## 🚧 Future Improvements
 
-* Implement authentication system (Challenge 03)
-* Add order detail view (Challenge 02b)
-* Improve accessibility (ARIA roles, focus trapping)
-* Add automated frontend tests
-* Migrate frontend to TypeScript
+* Role-based access control (Admin vs User)
+* Real-time order updates (WebSockets)
+* Order history & audit logs
+* Invoice generation on successful orders
+* Automated frontend & backend tests
+* Migration to TypeScript
 
 ---
 
@@ -131,4 +275,5 @@ docker-compose up --build
 This project is for technical evaluation purposes only.
 
 ---
+
 
