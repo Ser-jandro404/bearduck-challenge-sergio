@@ -1,4 +1,3 @@
-
 ---
 
 # 🛒 E-commerce Full Stack Challenge – Submission
@@ -7,7 +6,7 @@
 
 This repository contains my solution to selected challenges from the **E-commerce Full Stack Challenge**, built using **React**, **FastAPI**, and **PostgreSQL**.
 
-The focus of this submission is improving **user experience**, **order management**, and **backend workflow integrity**, following clean architecture principles and production-ready practices.
+The focus of this submission is improving **user experience**, **order management**, **backend workflow integrity**, and **API scalability**, following clean architecture principles and production-ready practices.
 
 ---
 
@@ -48,7 +47,7 @@ Implemented smooth visual feedback when a product is added to the cart to improv
 
 ### 📌 Description
 
-Replaced the default browser `alert()` with a fully custom order confirmation modal.
+Replaced the default browser `alert()` with a fully custom order confirmation modal, allowing users to immediately access their order details.
 
 ### ✨ Features
 
@@ -114,6 +113,88 @@ PUT /orders/{order_id}/cancel
 
 ---
 
+## ✔ Challenge 04 – Pagination for Products & Orders
+
+**Type:** Backend (FastAPI)
+**Status:** Completed
+
+### 📌 Description
+
+Implemented **server-side pagination** for products and orders to improve performance, scalability, and API usability when handling large datasets.
+
+---
+
+### 🔧 Backend Changes (Challenge 04)
+
+#### ✅ New Paginated Response Schemas
+
+Introduced paginated response models using Pydantic:
+
+* `PaginatedProductResponse`
+* `PaginatedOrderResponse`
+
+Each response includes:
+
+* `items` → current page data
+* `total` → total records in database
+* `page` → current page number
+* `limit` → items per page
+* `pages` → total available pages
+
+This ensures:
+
+* Predictable API responses
+* Frontend-friendly pagination metadata
+* Clean separation of concerns
+
+---
+
+#### ✅ Controller Updates
+
+Pagination logic was added to both controllers:
+
+##### Products
+
+```python
+def get_all_products(db: Session, page: int = 1, limit: int = 10)
+```
+
+##### Orders
+
+```python
+def get_all_orders(db: Session, page: int = 1, limit: int = 10)
+```
+
+**Key behaviors:**
+
+* Offset calculation using `(page - 1) * limit`
+* Total count queries for accurate pagination
+* Ordered results for orders (latest first)
+* Prevents loading all records at once
+
+---
+
+#### ✅ Routes
+
+##### Products
+
+```http
+GET /products?page=1&limit=10
+```
+
+##### Orders
+
+```http
+GET /orders?page=1&limit=3
+```
+
+**Validation rules:**
+
+* `page >= 1`
+* `limit <= 100`
+
+---
+
 ## ✔ Challenge 05 – Order Workflow & Status Management
 
 **Type:** Backend + Admin Workflow
@@ -133,7 +214,7 @@ Order schemas were extended to support controlled status transitions.
 
 ##### 🔹 New Enum: `OrderStatus`
 
-```python
+```text
 pending → processing → successful
                     → failed
                     → cancelled
@@ -213,6 +294,7 @@ PATCH /orders/{order_id}/status
 * Enums used to avoid invalid states
 * Controllers isolated from routes
 * Stock integrity preserved on cancellation
+* Pagination handled at database level
 
 ### Frontend
 
@@ -231,6 +313,7 @@ PATCH /orders/{order_id}/status
   * Order creation flow
   * Order cancellation and stock restoration
   * Valid and invalid status transitions
+  * Pagination behavior
   * UI behavior across all order states
 
 ---
@@ -251,29 +334,11 @@ docker-compose up --build
 
 ---
 
-## 📌 Assumptions
-
-* Authentication not required for this submission
-* Admin workflow actions are exposed for evaluation purposes
-* Order status is source of truth for UI behavior
-
----
-
-## 🚧 Future Improvements
-
-* Role-based access control (Admin vs User)
-* Real-time order updates (WebSockets)
-* Order history & audit logs
-* Invoice generation on successful orders
-* Automated frontend & backend tests
-* Migration to TypeScript
-
----
-
 ## 📄 License
 
 This project is for technical evaluation purposes only.
 
 ---
+
 
 
