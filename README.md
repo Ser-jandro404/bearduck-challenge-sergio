@@ -126,72 +126,21 @@ Implemented **server-side pagination** for products and orders to improve perfor
 
 ### 🔧 Backend Changes (Challenge 04)
 
-#### ✅ New Paginated Response Schemas
+* Introduced paginated response schemas:
 
-Introduced paginated response models using Pydantic:
-
-* `PaginatedProductResponse`
-* `PaginatedOrderResponse`
-
-Each response includes:
-
-* `items` → current page data
-* `total` → total records in database
-* `page` → current page number
-* `limit` → items per page
-* `pages` → total available pages
-
-This ensures:
-
-* Predictable API responses
-* Frontend-friendly pagination metadata
-* Clean separation of concerns
+  * `PaginatedProductResponse`
+  * `PaginatedOrderResponse`
+* Added pagination logic to product and order controllers
+* Included pagination metadata in API responses
 
 ---
 
-#### ✅ Controller Updates
-
-Pagination logic was added to both controllers:
-
-##### Products
-
-```python
-def get_all_products(db: Session, page: int = 1, limit: int = 10)
-```
-
-##### Orders
-
-```python
-def get_all_orders(db: Session, page: int = 1, limit: int = 10)
-```
-
-**Key behaviors:**
-
-* Offset calculation using `(page - 1) * limit`
-* Total count queries for accurate pagination
-* Ordered results for orders (latest first)
-* Prevents loading all records at once
-
----
-
-#### ✅ Routes
-
-##### Products
+### ✅ Routes
 
 ```http
 GET /products?page=1&limit=10
-```
-
-##### Orders
-
-```http
 GET /orders?page=1&limit=3
 ```
-
-**Validation rules:**
-
-* `page >= 1`
-* `limit <= 100`
 
 ---
 
@@ -208,81 +157,86 @@ Implemented a **strict order workflow system** enforcing valid status transition
 
 ### 🔧 Backend Changes (Challenge 05)
 
-#### ✅ Schema Updates (Pydantic)
-
-Order schemas were extended to support controlled status transitions.
-
-##### 🔹 New Enum: `OrderStatus`
-
-```text
-pending → processing → successful
-                    → failed
-                    → cancelled
-```
-
-Supported statuses:
-
-* `pending`
-* `processing`
-* `successful`
-* `cancelled`
-* `failed`
-
-This ensures:
-
-* Strong typing
-* Invalid statuses are rejected
-* Safer API contracts
-
----
-
-#### 🔹 New Schema: `OrderStatusUpdate`
-
-Used to validate PATCH requests:
-
-```json
-{
-  "status": "processing"
-}
-```
-
----
-
-### ✅ New Controller: `update_order_status_controller`
-
-Implements a finite-state workflow using strict transition rules:
-
-```python
-VALID_TRANSITIONS = {
-  "pending": ["processing", "cancelled"],
-  "processing": ["successful", "failed", "cancelled"],
-  "successful": [],
-  "cancelled": [],
-  "failed": []
-}
-```
-
-**Responsibilities:**
-
-* Validate order existence
-* Prevent invalid transitions
-* Apply allowed transitions only
-* Return meaningful error messages
-
----
-
-### ✅ New Route
+* Introduced `OrderStatus` enum
+* Added `OrderStatusUpdate` schema
+* Implemented `update_order_status_controller`
+* Enforced valid transitions only
 
 ```http
 PATCH /orders/{order_id}/status
 ```
 
-**Behavior:**
+---
 
-* Validates request body via schema
-* Enforces workflow rules
-* Returns updated order
-* Rejects invalid transitions (`400`)
+## ✔ Challenge 06 – Advanced Product Search, Filtering & Sorting
+
+**Type:** Backend (FastAPI)
+**Status:** Completed
+
+### 📌 Description
+
+Extended the product listing endpoint to support **advanced querying capabilities**, allowing clients to search, filter, sort, and paginate products efficiently.
+
+This enhancement improves **API flexibility**, **frontend usability**, and **real-world scalability**.
+
+---
+
+### 🔧 Backend Changes (Challenge 06)
+
+#### ✅ Controller Enhancements
+
+The `get_all_products` controller was extended to support:
+
+* **Text search** (name and description)
+* **Price range filtering**
+* **Dynamic sorting**
+* **Sort order control**
+* **Pagination compatibility**
+
+Supported features:
+
+* `search` → case-insensitive search on name & description
+* `min_price` / `max_price` → numeric filtering
+* `sort_by` → `price`, `name`, or `stock`
+* `order` → `asc` or `desc`
+* Default sorting by product name
+
+All filters are composed dynamically using SQLAlchemy query chaining.
+
+---
+
+### ✅ Updated Route
+
+```http
+GET /products
+```
+
+#### Query Parameters
+
+| Parameter   | Type   | Description                            |
+| ----------- | ------ | -------------------------------------- |
+| `page`      | int    | Page number (default: 1)               |
+| `limit`     | int    | Items per page (default: 10, max: 100) |
+| `search`    | string | Search term (name or description)      |
+| `min_price` | float  | Minimum price filter                   |
+| `max_price` | float  | Maximum price filter                   |
+| `sort_by`   | string | `price`, `name`, or `stock`            |
+| `order`     | string | `asc` or `desc`                        |
+
+#### Example Request
+
+```http
+GET /products?search=shirt&min_price=10&max_price=50&sort_by=price&order=desc&page=1&limit=5
+```
+
+---
+
+### 🧠 Benefits
+
+* Efficient database querying
+* Clean and extensible API design
+* Frontend-ready filtering & sorting
+* No breaking changes to pagination schema
 
 ---
 
@@ -294,7 +248,7 @@ PATCH /orders/{order_id}/status
 * Enums used to avoid invalid states
 * Controllers isolated from routes
 * Stock integrity preserved on cancellation
-* Pagination handled at database level
+* Pagination, filtering, and sorting handled at database level
 
 ### Frontend
 
@@ -314,6 +268,7 @@ PATCH /orders/{order_id}/status
   * Order cancellation and stock restoration
   * Valid and invalid status transitions
   * Pagination behavior
+  * Product filtering, searching, and sorting
   * UI behavior across all order states
 
 ---
@@ -332,13 +287,11 @@ docker-compose up --build
 * Backend API: [http://localhost:8000](http://localhost:8000)
 * API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
+
 ---
 
 ## 📄 License
 
 This project is for technical evaluation purposes only.
-
----
-
 
 
