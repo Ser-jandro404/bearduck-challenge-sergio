@@ -2,16 +2,75 @@
 Product business logic
 """
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, asc, desc
 from fastapi import HTTPException
 import models
 import schemas
 import uuid
+import math
 
+#challenge 4
+#challebge 6
+def get_all_products(
+    db: Session, 
+    page: int = 1, 
+    limit: int = 10,
+    search: str = None,
+    min_price: float = None,
+    max_price: float = None,
+    sort_by: str = None,
+    order: str = 'asc'
+):
+    """Get products with pagination, filtering and sorting"""
 
-def get_all_products(db: Session):
-    """Get all products from database"""
-    return db.query(models.Product).all()
+    query = db.query(models.Product)
+    
+    if search:        
+        search_fmt = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Product.name.ilike(search_fmt),
+                models.Product.description.ilike(search_fmt)
+            )
+        )
+    
+    if min_price is not None:
+        query = query.filter(models.Product.price >= min_price)
+        
+    if max_price is not None:
+        query = query.filter(models.Product.price <= max_price)
 
+    if sort_by:        
+        sort_fields = {
+            'price': models.Product.price,
+            'name': models.Product.name,
+            'stock': models.Product.stock
+        }
+        
+        field = sort_fields.get(sort_by)
+        
+        if field is not None:
+            if order == 'desc':
+                query = query.order_by(desc(field))
+            else:
+                query = query.order_by(asc(field))
+    else:
+        # Default sort 
+        query = query.order_by(models.Product.name)
+
+    total_products = query.count() 
+    total_pages = math.ceil(total_products / limit) if limit > 0 else 1
+    
+    skip = (page - 1) * limit
+    products = query.offset(skip).limit(limit).all()
+
+    return {
+        "items": products,
+        "total": total_products,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 def get_product_by_id(product_id: str, db: Session):
     """Get a single product by ID"""

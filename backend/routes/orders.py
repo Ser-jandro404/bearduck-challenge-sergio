@@ -1,7 +1,7 @@
 """
 Order API routes
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 from controllers.orders import update_order_status_controller
@@ -22,11 +22,15 @@ def create_order(
     """Create an order from cart items"""
     return order_controller.create_order(order_request, db)
 
-
-@router.get("", response_model=List[schemas.OrderResponse])
-def get_orders(db: Session = Depends(get_db)):
-    """Get all orders"""
-    return order_controller.get_all_orders(db)
+#challenge 4
+@router.get("", response_model=schemas.PaginatedOrderResponse)
+def get_orders(
+    page: int = Query(1, ge=1),      #  default 1
+    limit: int = Query(3, le=100),   # default 3 
+    db: Session = Depends(get_db)
+):
+    """Get all orders with pagination"""
+    return order_controller.get_all_orders(db, page, limit)
 
 
 @router.get("/{order_id}", response_model=schemas.OrderResponse)

@@ -336,9 +336,9 @@ body {
   font-size: 0.875rem;
 }
 
-/* --- 1. TU ESTILO ORIGINAL (Mantiene la posición y forma correcta) --- */
+
 .product-card button {
-  margin: 0 1rem 1rem; /* Esto es clave para que no se vea pegado a los bordes */
+  margin: 0 1rem 1rem; 
   padding: 0.75rem;
   background: var(--primary-color);
   color: white;

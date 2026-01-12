@@ -1,49 +1,122 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import OrderSuccessModal from './OrderSuccess' //challenge #2a
-import OrderDetailsModal from './OrderDetailsModal';// challenge #2b
+import OrderSuccessModal from './OrderSuccess'
+import OrderDetailsModal from './OrderDetailsModal'
+
+
+// API base URL (env fallback for local development)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function App() {
+  
+  /* =========================
+     PRODUCT PAGINATION STATES
+     ========================= */
   const [products, setProducts] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const ITEMS_PER_PAGE = 5;
+
+  /* =========================
+     SEARCH, FILTER & SORT
+     ========================= */
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+  const [sortBy, setSortBy] = useState(""); // 'price', 'name', 'stock'
+  const [sortOrder, setSortOrder] = useState("asc");
+
+   /* =========================
+     ORDERS PAGINATION
+     ========================= */
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [totalOrderPages, setTotalOrderPages] = useState(1);
+  
+  /* =========================
+     CART & ORDERS STATE
+     ========================= */
   const [cart, setCart] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  /* =========================
+     UI VISIBILITY STATES
+     ========================= */
   const [showCart, setShowCart] = useState(false) 
   const [showOrders, setShowOrders] = useState(false)
-  // Tracks products that were recently added to cart
-  // Used to trigger temporary success animation per product (Challenge 01)
+  
+  
+  /* =========================
+     VISUAL FEEDBACK (ADD TO CART)
+     ========================= */
   const [addedItems, setAddedItems] = useState({}) 
-  //-------------------------
 
-  // Controls order success modal visibility and content
-  // Replaces browser alert() with custom modal (Challenge 02)
+  /* =========================
+     MODALS STATE
+     ========================= */
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [createdOrderId, setCreatedOrderId] = useState(null)
-  // ------------------------------------
-
   const [selectedOrder, setSelectedOrder] = useState(null); 
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-
-
+  
+  /* =========================
+     SESSION HANDLING
+     ========================= */
   const [sessionId] = useState(() => {
     const saved = localStorage.getItem('sessionId')
     return saved || `session-${Date.now()}`
   })
 
+  /* =========================
+     DEBOUNCED SEARCH EFFECT
+     ========================= */
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      if (searchTerm !== debouncedSearch) setCurrentPage(1); 
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  /* =========================
+     INITIAL DATA LOAD & UPDATES
+     ========================= */
   useEffect(() => {
     localStorage.setItem('sessionId', sessionId)
-    fetchProducts()
+    fetchProducts(currentPage)
     fetchCart()
-  }, [sessionId])
+  }, [sessionId, currentPage, debouncedSearch, sortBy, sortOrder])
 
-  const fetchProducts = async () => {
+  /* =========================
+     FETCH PRODUCTS (PAGINATED + FILTERED)
+     ========================= */
+  const fetchProducts = async (page = 1) => {
+    setLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/products`)
+      const params = new URLSearchParams({
+        page: page,
+        limit: ITEMS_PER_PAGE
+      });
+
+      if (debouncedSearch) params.append("search", debouncedSearch);
+      if (priceRange.min) params.append("min_price", priceRange.min);
+      if (priceRange.max) params.append("max_price", priceRange.max);
+      if (sortBy) {
+        params.append("sort_by", sortBy);
+        params.append("order", sortOrder);
+      }
+      
+      const response = await fetch(`${API_URL}/api/products?${params.toString()}`)
       if (!response.ok) throw new Error('Failed to fetch products')
+      
       const data = await response.json()
-      setProducts(data)
+      setProducts(data.items)
+      setTotalPages(data.pages)
+      setCurrentPage(data.page)
+      
       setLoading(false)
     } catch (err) {
       setError(err.message)
@@ -51,6 +124,25 @@ function App() {
     }
   }
 
+  /* =========================
+     FILTER HANDLERS
+     ========================= */
+  const handlePriceFilter = () => {
+    setCurrentPage(1);
+    fetchProducts(1);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setPriceRange({ min: "", max: "" });
+    setSortBy("");
+    setSortOrder("asc");
+    setCurrentPage(1);
+  };
+
+   /* =========================
+     CART LOGIC
+     ========================= */
   const fetchCart = async () => {
     try {
       const response = await fetch(`${API_URL}/api/cart/${sessionId}`)
@@ -62,18 +154,7 @@ function App() {
     }
   }
 
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/orders`)
-      if (!response.ok) throw new Error('Failed to fetch orders')
-      const data = await response.json()
-      setOrders(data)
-    } catch (err) {
-      console.error('Error fetching orders:', err)
-    }
-  }
-
-  const addToCart = async (productId) => {
+    const addToCart = async (productId) => {
     try {
       const response = await fetch(`${API_URL}/api/cart/${sessionId}/items`, {
         method: 'POST',
@@ -85,13 +166,7 @@ function App() {
         throw new Error(error.detail)
       }
       await fetchCart()
-      await fetchProducts()
 
-      // Trigger temporary visual feedback for "Add to Cart"
-      // Marks product as recently added to:
-      // - Disable button
-      // - Show success color + check icon
-      // Automatically resets after animation duration (~600ms)
       setAddedItems(prev => ({...prev, [productId]:true}))
       setTimeout(() => {
         setAddedItems(prev=>{
@@ -100,13 +175,12 @@ function App() {
           return next
         })
       }, 600);
-      //---------------------------------------
     } catch (err) {
       alert(err.message)
     }
   }
 
-  const updateCartItem = async (productId, quantity) => {
+    const updateCartItem = async (productId, quantity) => {
     try {
       if (quantity === 0) {
         await removeFromCart(productId)
@@ -127,7 +201,7 @@ function App() {
     }
   }
 
-  const removeFromCart = async (productId) => {
+    const removeFromCart = async (productId) => {
     try {
       const response = await fetch(`${API_URL}/api/cart/${sessionId}/items/${productId}`, {
         method: 'DELETE'
@@ -136,6 +210,23 @@ function App() {
       await fetchCart()
     } catch (err) {
       alert(err.message)
+    }
+  }
+
+  /* =========================
+     ORDERS LOGIC
+     ========================= */
+  const fetchOrders = async (page = 1) => {
+    try {
+      const response = await fetch(`${API_URL}/api/orders?page=${page}&limit=3`)
+      if (!response.ok) throw new Error('Failed to fetch orders')
+      
+      const data = await response.json()
+      setOrders(data.items)
+      setOrdersPage(data.page)
+      setTotalOrderPages(data.pages)
+    } catch (err) {
+      console.error('Error fetching orders:', err)
     }
   }
 
@@ -156,51 +247,23 @@ function App() {
         throw new Error(error.detail)
       }
       const order = await response.json()
-      // Store created order ID and display success modal
-      // This replaces the default browser alert with a custom UI (Challenge 02)
+      
       setCreatedOrderId(order.id) 
       setSelectedOrder(order)
       setShowSuccessModal(true)   
 
-      // Clear cart
       await fetch(`${API_URL}/api/cart/${sessionId}`, { method: 'DELETE' })
       await fetchCart()
-      await fetchProducts()
+      fetchProducts(currentPage)
       setShowCart(false)
     } catch (err) {
       alert(err.message)
     }
   }
 
-  // Modal interaction handlers
-  // Allows user to either close modal or navigate to order history
-  const handleCloseModal = () => {
-    setShowSuccessModal(false);
-  };
-
-  const handleViewOrder = () => {
-    setShowSuccessModal(false);
-    setShowDetailsModal(true);
-    fetchOrders(); 
-  };
-  // -----------------------------------------------------
-
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => {
-      const product = products.find(p => p.id === item.product_id)
-      return total + (product ? product.price * item.quantity : 0)
-    }, 0).toFixed(2)
-  }
-
-  const getCartItemCount = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0)
-  }
-
-  const handleViewOrderDetails = (order) => {
-    setSelectedOrder(order);
-    setShowDetailsModal(true);
-  };
-
+  /* =========================
+     ORDER ACTIONS
+     ========================= */
   const cancelOrder = async (orderId) => {
     try {
       const response = await fetch(`${API_URL}/api/orders/${orderId}/cancel`, {
@@ -213,9 +276,7 @@ function App() {
       }
       
       const updatedOrder = await response.json();
-      
       alert('Pedido cancelado correctamente');
-      
       
       await fetchOrders(); 
       setSelectedOrder(updatedOrder); 
@@ -225,7 +286,7 @@ function App() {
     }
   };
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
+    const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
@@ -235,22 +296,53 @@ function App() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail); // Aquí saltará si la transición es inválida
+        throw new Error(error.detail); 
       }
 
       const updatedOrder = await response.json();
-      
-      // Actualizamos la UI
-      setSelectedOrder(updatedOrder); // Actualiza el modal abierto
-      fetchOrders(); // Actualiza la lista de fondo
+      setSelectedOrder(updatedOrder); 
+      fetchOrders(); 
       
     } catch (err) {
       alert(`Error: ${err.message}`);
     }
   };
 
-  if (loading) return <div className="loading">Loading...</div>
-  if (error) return <div className="error">Error: {error}</div>
+  /* =========================
+     HELPERS
+     ========================= */
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => {
+      const product = products.find(p => p.id === item.product_id)
+      return total + (product ? product.price * item.quantity : 0)
+    }, 0).toFixed(2)
+  }
+
+  const getCartItemCount = () => {
+    return cart.reduce((total, item) => total + item.quantity, 0)
+  }
+
+  if (loading && currentPage === 1 && !products.length) return <div className="loading">Loading...</div>
+
+
+  const handleViewOrderDetails = (order) => {
+    setSelectedOrder(order);
+    setShowDetailsModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+  };
+
+  const handleViewOrder = () => {
+    setShowSuccessModal(false);
+    setShowDetailsModal(true);
+    fetchOrders(); 
+  };
+  
+  /* =========================
+     JSX RENDER
+     ========================= */
 
   return (
     <div className="app">
@@ -268,7 +360,7 @@ function App() {
             onClick={() => {
               setShowOrders(!showOrders);
               setShowCart(false);
-              if (!showOrders) fetchOrders();
+              if (!showOrders) fetchOrders(1);
             }}
           >
             Orders
@@ -276,7 +368,6 @@ function App() {
         </div>
       </header>
 
-      
       <OrderSuccessModal 
         isOpen={showSuccessModal} 
         orderId={createdOrderId} 
@@ -284,7 +375,6 @@ function App() {
         onViewOrder={handleViewOrder}
       />
       
-
       {showCart && (
         <div className="cart-panel">
           <h2>Shopping Cart</h2>
@@ -294,11 +384,11 @@ function App() {
             <>
               <div className="cart-items">
                 {cart.map(item => {
-                  const product = products.find(p => p.id === item.product_id)
-                  if (!product) return null
+                  const product = products.find(p => p.id === item.product_id) || {name: 'Loading...', price: 0} 
+                  
                   return (
                     <div key={item.product_id} className="cart-item">
-                      <img src={product.image_url} alt={product.name} />
+                      {product.image_url && <img src={product.image_url} alt={product.name} />}
                       <div className="cart-item-details">
                         <h3>{product.name}</h3>
                         <p>${product.price}</p>
@@ -338,48 +428,56 @@ function App() {
           {orders.length === 0 ? (
             <p>No orders yet</p>
           ) : (
-            <div className="orders-list">
-              {orders.map(order => (
-                <div key={order.id} className="order-card">
-                  <div className="order-header">
-                    <h3>Order #{order.id.substring(0, 8)}</h3>
-                    
-                    <span className={`order-status ${order.status}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <p className="order-date">
-                    {new Date(order.created_at).toLocaleString()}
-                  </p>
-                  <div className="order-total">
-                    <strong>Total: ${order.total.toFixed(2)}</strong>
-                  </div>
-                  
-                  
-                  <button 
-                    style={{
-                        marginTop: '1rem',
-                        width: '100%',
-                        padding: '0.5rem',
-                        backgroundColor: '#2563eb',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer'
-                    }}
-                    onClick={() => handleViewOrderDetails(order)}
-                  >
-                    Ver Detalles
-                  </button>
+            <>
+              <div className="orders-list">
+                {orders.map(order => (
+                  <div key={order.id} className="order-card">
+                    <div className="order-header">
+                      <h3>Order #{order.id.substring(0, 8)}</h3>
+                      <span className={`order-status ${order.status}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="order-date">
+                      {new Date(order.created_at).toLocaleString()}
+                    </p>
+                    <div className="order-total">
+                      <strong>Total: ${order.total.toFixed(2)}</strong>
+                    </div>
 
+                    <button
+                      className="btn-view-details"
+                      onClick={() => handleViewOrderDetails(order)}
+                    >
+                      Ver Detalles
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="pagination-controls">
+                  <button
+                    disabled={ordersPage === 1}
+                    onClick={() => fetchOrders(ordersPage - 1)}
+                    className="btn-secondary btn-pagination"
+                  >
+                    Prev
+                  </button>
+                  <span>
+                    Page {ordersPage} of {totalOrderPages}
+                  </span>
+                  <button
+                    disabled={ordersPage === totalOrderPages}
+                    onClick={() => fetchOrders(ordersPage + 1)}
+                    className="btn-secondary btn-pagination"
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+            </>
           )}
         </div>
       )}
 
-      
       <OrderDetailsModal 
         isOpen={showDetailsModal}
         order={selectedOrder}
@@ -388,40 +486,133 @@ function App() {
         onUpdateStatus={handleUpdateStatus}
       />
 
-      <main className="products-grid">
-        {products.map(product => {
-            // Determines if this product is currently in "added" animation state
-            const isAdded = addedItems[product.id];
+      <div className="filters-container">
+        <div className="filters-row">
+          
+          {/* Search */}
+          <div className="filter-group">
+            <input 
+              type="text" 
+              className="search-input"
+              placeholder="🔍 Search products..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Price Range */}
+          <div className="filter-group">
+            <input 
+              type="number" 
+              placeholder="Min $" 
+              className="price-input"
+              value={priceRange.min}
+              onChange={(e) => setPriceRange({...priceRange, min: e.target.value})}
+            />
+            <span className="filter-separator">-</span>
+            <input 
+              type="number" 
+              placeholder="Max $" 
+              className="price-input"
+              value={priceRange.max}
+              onChange={(e) => setPriceRange({...priceRange, max: e.target.value})}
+            />
+            <button onClick={handlePriceFilter} className="btn-secondary btn-apply">Apply</button>
+          </div>
+
+          {/* Sort */}
+          <div className="filter-group">
+            <select 
+              value={sortBy} 
+              onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
+              className="filter-select"
+            >
+              <option value="">Sort By...</option>
+              <option value="price">Price</option>
+              <option value="name">Name</option>
+              <option value="stock">Stock</option>
+            </select>
             
-            return (
-              <div key={product.id} className="product-card">
-                <img src={product.image_url} alt={product.name} />
-                <h3>{product.name}</h3>
-                <p className="description">{product.description}</p>
-                <div className="product-footer">
-                  <span className="price">${product.price}</span>
-                  <span className="stock">Stock: {product.stock}</span>
+            {sortBy && (
+              <button 
+                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                className="sort-toggle-btn"
+              >
+                {sortOrder === 'asc' ? '⬆️ Low to High' : '⬇️ High to Low'}
+              </button>
+            )}
+          </div>
+
+          {/* Clear */}
+          <button onClick={clearFilters} className="clear-filters-btn">
+            × Clear All
+          </button>
+        </div>
+      </div>
+
+      <main className="products-grid">
+        {loading ? <p className="loading-message">Loading products...</p> : (
+            products.length > 0 ? (
+                products.map(product => {
+                    const isAdded = addedItems[product.id];
+                    return (
+                      <div key={product.id} className="product-card">
+                        <img src={product.image_url} alt={product.name} />
+                        <h3>{product.name}</h3>
+                        <p className="description">{product.description}</p>
+                        <div className="product-footer">
+                          <span className="price">${product.price}</span>
+                          <span className="stock">Stock: {product.stock}</span>
+                        </div>
+                      
+                        <button
+                          onClick={() => addToCart(product.id)}
+                          disabled={product.stock === 0 || isAdded}
+                          className={`add-cart-btn ${product.stock === 0 ? 'disabled' : ''} ${isAdded ? 'success' : ''}`}
+                        >
+                          {isAdded ? (
+                              <span className="success-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 6L9 17l-5-5" />
+                                </svg>
+                              </span>
+                          ) : (
+                            product.stock === 0 ? 'Out of Stock' : 'Add to Cart'
+                          )}
+                        </button>
+                      </div>
+                    )
+                })
+            ) : (
+                <div className="full-width-message">
+                    <h3>No products found</h3>
+                    <p>Try adjusting your search or filters.</p>
                 </div>
-              
-                <button
-                  onClick={() => addToCart(product.id)}
-                  disabled={product.stock === 0 || isAdded}
-                  className={`add-cart-btn ${product.stock === 0 ? 'disabled' : ''} ${isAdded ? 'success' : ''}`}
-                >
-                  {isAdded ? (
-                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                         <path d="M20 6L9 17l-5-5" />
-                       </svg>
-                     </span>
-                  ) : (
-                    product.stock === 0 ? 'Out of Stock' : 'Add to Cart'
-                  )}
-                </button>
-              </div>
             )
-        })}
+        )}
       </main>
+
+       {products.length > 0 && (
+           <div className="pagination-controls">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="btn-pagination"
+              >
+                Previous
+              </button>
+              
+              <span>Page {currentPage} of {totalPages}</span>
+              
+              <button 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="btn-pagination"
+              >
+                Next
+              </button>
+           </div>
+       )}
     </div>
   )
 }

@@ -1,1 +1,124 @@
-/* Additional app-specific styles can go here */
+
+.btn-view-details {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-view-details:hover {
+  background-color: #1d4ed8;
+}
+
+.pagination-controls {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+}
+
+.btn-pagination {
+  padding: 5px 15px;
+  cursor: pointer;
+}
+
+
+.filters-container {
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  margin: 0 auto 2rem auto;
+  max-width: 1200px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.filters-row {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+
+.search-input {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  width: 220px;
+}
+
+.price-input {
+  width: 80px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+.filter-separator {
+  color: #64748b;
+}
+
+.btn-apply {
+  padding: 8px 12px;
+}
+
+.filter-select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+.sort-toggle-btn {
+  margin-left: 5px;
+  padding: 8px;
+  cursor: pointer;
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.clear-filters-btn {
+  margin-left: auto;
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.clear-filters-btn:hover {
+  text-decoration: underline;
+}
+
+
+.full-width-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}
+
+.loading-message {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+
+.success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

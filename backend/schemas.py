@@ -6,13 +6,8 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
-#NEW 
-class OrderStatus(str, Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    SUCCESSFUL = "successful"
-    CANCELLED = "cancelled"
-    FAILED = "failed"
+
+
 
 # Product Schemas
 class ProductBase(BaseModel):
@@ -33,6 +28,16 @@ class Product(ProductBase):
     class Config:
         from_attributes = True
 
+# NEW challenge 4
+class PaginatedProductResponse(BaseModel):
+    items: List[Product]  # PRODUCTS
+    total: int            # TOTAL NUMBER OF PRODUCTS IN THE DATABASE
+    page: int             # CURREBT PAGE
+    limit: int            # PRODUCTS PER PAGE
+    pages: int            # TOTAL PAGES
+
+    class Config:
+        from_attributes = True
 
 # Cart Schemas
 class CartItemBase(BaseModel):
@@ -72,6 +77,21 @@ class OrderResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# NEW challenge 4
+class PaginatedOrderResponse(BaseModel):
+    items: List[OrderResponse]
+    total: int            # TOTAL NUMBER OF ORDERS IN THE DATABASE
+    page: int             # CURREBT PAGE
+    limit: int            # ORDERS PER PAGE
+    pages: int            # TOTAL PAGES
+
+#NEW 
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCESSFUL = "successful"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
 
 class CreateOrderRequest(BaseModel):
     cart_items: List[CartItem]

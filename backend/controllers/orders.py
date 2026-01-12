@@ -8,6 +8,7 @@ import schemas
 import uuid
 from models import Order 
 from schemas import OrderStatus
+import math
 
 
 def create_order(order_request: schemas.CreateOrderRequest, db: Session):
@@ -63,11 +64,24 @@ def create_order(order_request: schemas.CreateOrderRequest, db: Session):
 
     return order
 
-
-def get_all_orders(db: Session):
-    """Get all orders"""
-    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
-    return orders
+#challenge 4
+def get_all_orders(db: Session, page: int = 1, limit: int = 10):
+    """Get orders with pagination"""
+    skip = (page -1) * limit
+    total_orders = db.query(models.Order).count()
+    total_pages = math.ceil(total_orders / limit)
+    orders = db.query(models.Order)\
+        .order_by(models.Order.created_at.desc())\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+    return {
+        "items": orders,
+        "total": total_orders,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
 def get_order_by_id(order_id: str, db: Session):
